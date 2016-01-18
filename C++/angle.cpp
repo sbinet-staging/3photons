@@ -47,7 +47,7 @@ angle::angle (ppp oPpp, scalar oScalar) {
   //std::cout << "       " <<           std::endl ;
 }
 
-//! Détermine si un événement passe ou non les coupures
+//! Determine whether an event passes cut or not
 bool angle::CUT (ppp oPpp, cutpar oCutpar) {
   bool xCut;
 

@@ -32,8 +32,8 @@ void resfin::ERIC (double BREPEM, double CONVERS, double PI, param oParam) {
 
 //void resfin::FAWZI (ofstream UNE, double BREPEM, double CONVERS, double PI, double ETOT, param oParam, cutpar oCutpar) {
 void resfin::FAWZI (double BREPEM, double CONVERS, double PI, double ETOT, param oParam, cutpar oCutpar) {
-//! Affiche les resultats analytiques de Fawzi, 
-//! et compare aux resultats du MC
+//! Displays Fawzi's analytical results, 
+//! and compare them to MonteCarlo results
 
   double BRA, MRE, GRE, SIG, DEL, EPS;
   double F1, G1, G2, G3, FF, GG;
@@ -98,36 +98,4 @@ void resfin::FAWZI (double BREPEM, double CONVERS, double PI, double ETOT, param
   std::cout << "       : " << MCM/SIGM-1.0 << " | " << INCRM << " | " << (MCM/SIGM-1.0)/INCRM << std::endl;
   std::cout << std::endl;
 
-//  UNE << std::endl;
-//  UNE << "s (pb) :   Sig_cut_Th    Sig_Th      Rapport" << std::endl;
-//  UNE << "       :   Sig_Num" << std::endl;
-//  UNE << "       :   Ecart_relatif  Incertitude" << std::endl;
-//  UNE << std::endl;
-//  UNE << "s+(pb) : " << SIGP << SIG*3.0 << SIGP/SIG/3.0 << std::endl;
-//  UNE << "       : " << MCP << std::endl;
-//  UNE << "       : " << MCP/SIGP-1.0 << INCRP << (MCP/SIGP-1.0)/INCRP << std::endl;
-//  UNE << std::endl;
-//  UNE << "s-(pb) : " << SIGM << SIG*5.0 << SIGM/SIG/5.0 << std::endl;
-//  UNE << "       : " << MCM << std::endl;
-//  UNE << "       : " << MCM/SIGM-1.0 << INCRM << (MCM/SIGM-1.0)/INCRM << std::endl;
-//  UNE << std::endl;
-//
-////  UNE << *) << std::endl;
-////  UNE << 6)"s (pb) :   Sig_cut_Th    Sig_Th      Rapport" << std::endl;
-////  UNE << 6)"       :   Sig_Num" << std::endl;
-////  UNE << 6)"       :   Ecart_relatif  Incertitude" << std::endl;
-////  UNE << *) << std::endl;
-////  UNE << 7)"s+(pb) : " << SIGP << SIG*3.0 << SIGP/SIG/3.0 << std::endl;
-////  UNE << 8)"       : " << MCP << std::endl;
-////  UNE << 9)"       : " << MCP/SIGP-1.0 << INCRP << (MCP/SIGP-1.0)/INCRP << std::endl;
-////  UNE << *) << std::endl;
-////  UNE << 7)"s-(pb) : " << SIGM << SIG*5.0 << SIGM/SIG/5.0 << std::endl;
-////  UNE << 8)"       : " << MCM << std::endl;
-////  UNE << 9)"       : " << MCM/SIGM-1.0 << INCRM << (MCM/SIGM-1.0)/INCRM << std::endl;
-////  UNE << *) << std::endl;
-
-//6 FORMAT(A)
-//7 FORMAT(A, 2G14.8, G10.4)
-//8 FORMAT(A,  G14.8)
-//9 FORMAT(A, 2G14.8, G10.4)
-    }// END SUBROUTINE FAWZI
+}

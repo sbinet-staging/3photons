@@ -19,8 +19,39 @@ extern "C" {
 }
 #include "time.h"
 
-// PROGRAM RIEMANN
 // g++ mc.cxx angle.cxx ppp.cxx spinor.cxx result.cxx resfin.cxx fawzi.cxx
+
+//!    \mainpage About the 3 photons simple Monte-Carlo
+//!      \section intro1 Introduction (for the physicist)
+//!       This small computational program computes cross-section for the particle physics process
+//! electron + positron gives three photons (e‚Å∫e‚Åª ‚Üí ùõæùõæùõæ).
+//! It distinguishes a classical Standard Model contribution, of purely Quantum ElectroDynamic origin
+//! and an hypothetic, beyond the Standard Model, New Physics contribution, phenomenologically
+//! described by two effectives operators.
+//! It was designed in the LEP era, so these new interactions occurs between the Z‚Å∞ boson and the three photons.
+//!  The effective operator can be related to specific models, among which magnetic monopoles that run in a four points loop.
+//!  The two operators exhibit different
+//!      \section intro2 Introduction (for the numerical guy)
+//! The physicist want to compute a (multidimensional) integral, so we chose a Monte Carlo algorithm
+//!      \section intro3 Introduction (for the computer guy)
+//! this program started in a purely procedural style:
+//! read in parameters and initialise counters
+//! loop over (random) event,
+//!           determining their geometrical and energy configuration,
+//!           their phase space weight,
+//!           their transition probability for each polarisation/helicity configuration,
+//!                   depending on coupling strength
+//!           sum it up
+//!  then display / store the result.
+//!  The use of common (for the original Fortran) or struct (in C) or record types (in Ada) or classes (in C++)
+//! illustrates an object oriented design.
+//!  The fact that we can plug each phase's output as the input of the next phase lend to a functionnal approach.
+
+//! \file mc.cpp function for the 3 photons simple MonteCarlo
+//! \brief A Monte-Carlo generator for three-photons production at LEP with New Physics Anomalous Couplings
+//! reads in parameters (physical as well as computational), and run the main Monte-Carlo loop
+//! \author Vincent C. LAFAGE
+//! \date 2007-08-10 ISO
 int main ()
 {
   double ETOT, FLUX, PI, NORM, POIDS, WTEV, SIGMA, PREC, VARIANCE;
@@ -46,7 +77,6 @@ int main ()
   char TODAY_s[10];
   char TIMESTR_s[9];
 
-////////////////////////////////////////////////////////////////////////
   cutpar oCutpar;
   param  oParam;
   //spinor oSpinor;
@@ -54,10 +84,10 @@ int main ()
   //result oResult;
   resfin oResfin;
   xtrpro oXtrpro;
-////////////////////////////////////////////////////////////////////////
 
   int Saved_Time = unixtime ();
-//!   LECTURE DES PARAMETRES
+//   LECTURE DES PARAMETRES
+//!< Reading input parameters
   std::ifstream fluxFic ("valeurs", std::ios::in);
 
   fluxFic >> ITOT;           getline (fluxFic, A);
@@ -118,40 +148,39 @@ int main ()
   std::cout << "2PLOT          : " << PLOT           << std::endl;
   std::cout << "1/alpha  " << 1.0/ALPHA  << " alpha  " << ALPHA  << std::endl ;
   std::cout << "1/alphaz " << 1.0/ALPHAZ << " alphaz " << ALPHAZ << std::endl ;
-////////////////////////////////////////////////////////////////////////
+
   ppp    oPpp (ETOT);
-////////////////////////////////////////////////////////////////////////
-////!   Initialisation de PAW
+
+//  PAW initialisation
 //  CALL INIBOOK(ETOT, NBIN)
-////!   Masses des particules dans l'Ètat final
+//!< Sets final state particles masses
   MFIN [0] = 0.0;
   MFIN [1] = 0.0;
   MFIN [2] = 0.0;
-  //MFIN [3] = 0.0;
-//!   Calcul du facteur de flux (=1/2s pour 2 particules initiales sans masse)
+//!<   flux factor (=1/2s for 2 initial massless particles)
   FLUX = 1.0 / (2.0*ETOT*ETOT);
-//!   inclue la normalisation totale de l'espace des phases
+//!<   Includes total phase space normalisation
   PI = 4.0 * atan (1.0);
   NORM = pow (2.0*PI, 4-3*INP) / ((double) ITOT);
-//!   Facteur commun non-moyennÈ sur les spins=1
-//!                   /(facteur de symÈtrie)
-//!                   *(facteur de conversion GeV^-2->pb)
-//!   pour moyenner sur les spins, rajouter :
-//!                   /(nombre d'hÈlicitÈs incidentes)
+//!<  Common factor, non-averaged over spins=1
+//!<                  /(symmetry factor)
+//!<                  *(conversion factor GeV^-2->pb)
+//!<  To average over spins, add :
+//!<                  /(number of incoming helicities)
   FACTCOM = 1.0/6.0*CONVERS;
   E2      = 4.0*PI*ALPHA;
   E2Z     = 4.0*PI*ALPHAZ;
   COS2W   = 1.0-SIN2W;
   GZR     = oParam.GZ0 / oParam.MZ0;
 
-//!   Le facteur RAC8 vient des sqrt (2) de chaque vecteur de polarisation
-//!   dans la mÈthode des amplitudes d'hÈlicitÈ
-  //oSpinor.RAC8 = sqrt (8.0); //! dorÈnavant, c'est un paramËtre... nan, pas vraiment
-//!   Couplages
+//!>   RAC8 factor arise from SQRT (2) normalisation in each polarisation vector
+//!>   in helicity amplitudes method
+  //oSpinor.RAC8 = sqrt (8.0); //! dor√©navant, c'est un param√®tre... nan, pas vraiment
+//!   Couplings
   oParam.GA  = -pow (sqrt (E2), 3);
   oParam.GBP = -sqrt (E2Z/(4*COS2W*SIN2W)) / pow (oParam.MZ0, 4);
   oParam.GBM = oParam.GBP;
-//!   Facteurs d˚ ‡ la somme sur les polarisations
+//!   sum over polarisations factors
   oParam.POLP  =     - 2.0 * SIN2W;
   oParam.POLM  = 1.0 - 2.0 * SIN2W;
   oParam.POLP2 = pow (oParam.POLP, 2);
@@ -159,17 +188,17 @@ int main ()
   PAA   = 2.0;
   PAB   = 1.0-4.0*SIN2W;
   PBB   = 1.0-4.0*SIN2W+8.0*pow (SIN2W, 2);
-//!   Coefficient pour homogÈnÈiser
+//!   Homogeneity coefficient
   CAA   = FACTCOM*PAA;
   CAB   = FACTCOM*PAB / pow (oParam.MZ0, 2);
   CBB   = FACTCOM*PBB / pow (oParam.MZ0, 4);
-//!   Poids d'un ÈvËnement d'espace des phases ‡ 3 photons
+//!   Weight of a 3 photons phase space event
   WTEV  = pow (PI, 2)/8.0 * pow (ETOT, 2);
-//!   Passage en variable a-dimensionÈe...
+//!   Passage en variable a-dimension√©e...
   DZETA = pow ((ETOT/oParam.MZ0), 2);
   ECARTPIC = (DZETA-1.0)/GZR;
   PROPAG = 1.0/(pow (ECARTPIC, 2)+1.0);
-//!   Initialisation des impulsions entrantes
+//!   Incoming momenta initialisation
 
   //Facteur 3.81971807742127067698
 
@@ -186,20 +215,19 @@ int main ()
 
 //!$OMP PARALLEL DO SHARED (SPM2DIF, SPM2, VAR, SIGMA, VARIANCE, NTOT)
 //!     rang = OMP_GET_THREAD_NUM ()
-//!   DÈbut de la boucle d'intÈgration
+//!>  Start of integration loop
   for (I=0; I < ITOT; I++) {
     //RAMBO (INP, ETOT, MFIN, oPpp.POUT, WTEV);
     oPpp.RAMBO (INP, ETOT, MFIN, WTEV);
     WTEV = WTEV * NORM;
-//!   Trie les photons sortants par Ènergie
-    //oPpp.display ();
+//!  Sort outgoing photons by energy
     oPpp.TRI ();
-//!   Calcul des produits spinoriels, produits scalaires et angles
+//!   Spinor inner product, scalar product and center-of-mass frame angles computation
     spinor oSpinor (oPpp);
     scalar oScalar (oSpinor);
     angle  oAngle  (oPpp, oScalar);
-//!   Calcule le poids total de l'ÈvËnement avec l'ÈlÈment de matrice
-//!   (coupures s'il y a lieu)
+//!  Compute event total weight including Matrix element
+//!  (with cuts if needed)
     if (!oAngle.CUT (oPpp, oCutpar)) {
       result oResult (oParam, oSpinor, ETOT);
       oResult.display (oParam);
@@ -232,7 +260,7 @@ int main ()
       //std::cout << " " <<  << "  " <<  << "  " <<  << "  " <<  << std::endl ;
       //std::cout << "CAA   " << CAA   << " CBB  " << CBB  << " CAB   " << CAB   << " GZR   " << GZR << std::endl ;
       //std::cout << "PROBA " << PROBA << " WTEV " << WTEV << " POIDS " << POIDS << " SIGMA " << SIGMA << std::endl ;
-//!    STOCKE DANS UN HISTOGRAMME LES PARAMETRES DE L'EVENEMENT
+//!  Store event parameters in an histogram
       if (PLOT) {
         POIDS2 = CAA * oResfin.SPM2DIF [0] * WTEV / 4.0;
         oXtrpro.PRPLUS  = ((float) CBB * pow (BETAPLUS,  2) * oResfin.SPM2DIF [1]
@@ -249,41 +277,38 @@ int main ()
     };
   };
 //!$OMP END PARALLEL DO
+//! end of sampling loop
 
-//! FIN DE LA BOUCLE D'ECHANTILLONNAGE
-
-//! CALCUL DES INCERTITUDES RELATIVES
+//! Computing the relative uncertainties
   for (int K=0; K < NRESUL; K++) {
     oResfin.VAR [0] [K] = (oResfin.VAR [0] [K]-pow (oResfin.SPM2 [0] [K], 2)/ ((double) ITOT)) / ((double) ITOT-1);
     oResfin.VAR [0] [K] = sqrt (oResfin.VAR [0] [K] / ((double) ITOT)) / fabs (oResfin.SPM2 [0] [K] / (double) ITOT);
   }
-//! COPIE POUR LES SPINS OPPOSEES
+//! Copy for opposite spins
   for (int K=0; K < NRESUL; K++) {
     oResfin.SPM2 [1] [K] = oResfin.SPM2 [0] [K];
     oResfin.VAR  [1] [K] = oResfin.VAR  [0] [K];
   }
-//! POLARISATIONS
-  //for (int K=2; K <= 3;  K++) {
+//! Polarisations
   for (int K=1; K <= 2;  K++) {
     oResfin.SPM2 [0] [K] = oResfin.SPM2 [0] [K] * oParam.POLM2;
     oResfin.SPM2 [1] [K] = oResfin.SPM2 [1] [K] * oParam.POLP2;
   }
-  //for (int K=4; K<= 5; K++) {
   for (int K=3; K<= 4; K++) {
     oResfin.SPM2 [0] [K] = oResfin.SPM2 [0] [K] * oParam.POLM;
     oResfin.SPM2 [1] [K] = oResfin.SPM2 [1] [K] * oParam.POLP;
   }
-//! COEFFICIENTS PHYSIQUES et PROPAGATEUR DU Z0
+//! Physical coefficients and Z‚Å∞ propagator
   for (int Sp=0; Sp < 2; Sp++) {
      for (int K=0; K < NRESUL; K++) {
        oResfin.SPM2 [Sp] [K] = oResfin.SPM2 [Sp] [K] * FACTCOM * FLUX * WTEV;
-     } // ENDDO
+     }
      oResfin.SPM2 [Sp] [0] = oResfin.SPM2 [Sp] [0];
      oResfin.SPM2 [Sp] [1] = oResfin.SPM2 [Sp] [1]/pow (GZR, 2)/pow (oParam.MZ0, 4)*PROPAG;
      oResfin.SPM2 [Sp] [2] = oResfin.SPM2 [Sp] [2]/pow (GZR, 2)/pow (oParam.MZ0, 4)*PROPAG;
      oResfin.SPM2 [Sp] [3] = oResfin.SPM2 [Sp] [3]/GZR/pow (oParam.MZ0, 2)*PROPAG*ECARTPIC;
      oResfin.SPM2 [Sp] [4] = oResfin.SPM2 [Sp] [4]/GZR/pow (oParam.MZ0, 2)*PROPAG;
-  } // ENDDO
+  }
   BETAMIN = sqrt ((oResfin.SPM2 [0] [0]+oResfin.SPM2 [1] [0])/(oResfin.SPM2 [0] [1]+oResfin.SPM2 [1] [1]));
   SSP=(oResfin.SPM2 [0] [1]+oResfin.SPM2 [1] [1])/sqrt (oResfin.SPM2 [0] [0]+oResfin.SPM2 [1] [0])/2.0;
   SSM=(oResfin.SPM2 [0] [2]+oResfin.SPM2 [1] [2])/sqrt (oResfin.SPM2 [0] [0]+oResfin.SPM2 [1] [0])/2.0;
@@ -305,19 +330,16 @@ int main ()
   VARIANCE = (VARIANCE-pow (SIGMA, 2) / ((double) ITOT)) / ((double) ITOT-1);
   PREC = sqrt (VARIANCE / ((double) ITOT)) / fabs (SIGMA/((double) ITOT));
   SIGMA = SIGMA * FLUX;
-//!   NORMALISATION DES HISTOGRAMMES
+//!  Histograms normalisation
   // PAW en C++, pas tout de suite//  NORMA (FLUX*NBIN); // CALL NORMA(FLUX*NBIN)
   // PAW en C++, pas tout de suite//  NORMSUP (ETOT, // CALL NORMSUP(ETOT,
   // PAW en C++, pas tout de suite//           4./(oResfin.SPM2 [1, 1)+oResfin.SPM2 [2, 1)),
   // PAW en C++, pas tout de suite//           4./(oResfin.SPM2 [1, 2)+oResfin.SPM2 [2, 2)),
   // PAW en C++, pas tout de suite//           4./(oResfin.SPM2 [1, 3)+oResfin.SPM2 [2, 3)));
-//!   STOCKAGE DES RESULTATS DE PAW
+//!   PAW results storage
   // PAW en C++, pas tout de suite//  HROUT (0, ICYCLE, " "); // CALL HROUT(0, ICYCLE, " ')
   // PAW en C++, pas tout de suite//  HREND("DON"); // CALL HREND('DON')
-//!   STOCKAGE DES RESULTATS NUMERIQUES
-//!  CALL DATE(TODAY)
-  // more translation later // time (TIMESTR); // CALL TIME(TIMESTR)
-
+//!   Numerical results storage
   time_t t;
   time (&t);
   //size_t strftime (char *s, size_t max, const char *format, const struct tm *tm);
@@ -371,8 +393,8 @@ int main ()
   UNE.precision (7);
   UNE.scientific;
   //  1  1  0.1412055E+01  0.3094754E-01  0.2191666E-01
-  //  1  1 3.69675182e-018.10204612e-03 2.19166623e-02 
-  //  1  1  3.6967518e-018.1020461e-03  2.1916662e-02  
+  //  1  1 3.69675182e-018.10204612e-03 2.19166623e-02
+  //  1  1  3.6967518e-018.1020461e-03  2.1916662e-02
   for (int Sp=0; Sp < 2; Sp++) {
      for (int K=0; K < NRESUL; K++) { // format 930
        //UNE << std::right << std::setw (3) << Sp+1 << std::setw (3) << K+1 << std::setw (15) << std::left << oResfin.SPM2 [Sp] [K] << std::setw (15) << std::left << fabs (oResfin.SPM2 [Sp] [K])*oResfin.VAR [Sp] [K] << std::setw (15) << std::left << oResfin.VAR [Sp] [K] << std::endl;
@@ -381,24 +403,19 @@ int main ()
      UNE << std::endl;
   }
   for (int K=0; K < NRESUL; K++) { // format 940
-    UNE << std::right << "   " << std::setw (3) << K+1 << std::setw (15) << (oResfin.SPM2 [0] [K]+oResfin.SPM2 [1] [K])/4.0 << std::setw (15) << 
+    UNE << std::right << "   " << std::setw (3) << K+1 << std::setw (15) << (oResfin.SPM2 [0] [K]+oResfin.SPM2 [1] [K])/4.0 << std::setw (15) <<
     sqrt (+pow (oResfin.SPM2 [0] [K]*oResfin.VAR [0] [K], 2)
           +pow (oResfin.SPM2 [1] [K]*oResfin.VAR [1] [K], 2))/4.0 << std::setw (15) <<
     sqrt (+pow (oResfin.SPM2 [0] [K]*oResfin.VAR [0] [K], 2)
           +pow (oResfin.SPM2 [1] [K]*oResfin.VAR [1] [K], 2))/fabs (oResfin.SPM2 [0] [K]+oResfin.SPM2 [1] [K]) << std::endl;
-//    UNE << std::right << "   " << std::setw (3) << K+1 << std::setw (15) << (oResfin.SPM2 [1] [K]+oResfin.SPM2 [2] [K])/4.0 << std::setw (15) << 
-//    sqrt (+pow (oResfin.SPM2 [1] [K]*oResfin.VAR [1] [K], 2)
-//          +pow (oResfin.SPM2 [2] [K]*oResfin.VAR [2] [K], 2))/4.0 << std::setw (15) <<
-//    sqrt (+pow (oResfin.SPM2 [1] [K]*oResfin.VAR [1] [K], 2)
-//          +pow (oResfin.SPM2 [2] [K]*oResfin.VAR [2] [K], 2))/fabs (oResfin.SPM2 [1] [K]+oResfin.SPM2 [2] [K]) << std::endl;
   }
   oResfin.ERIC (BREPEM, CONVERS, PI, oParam);
   oResfin.FAWZI (BREPEM, CONVERS, PI, ETOT, oParam, oCutpar);
-  UNE.close (); // CLOSE(UNIT=UNE);
+  UNE.close ();
 
   UNE.open ("pil.mc"); //, ios::in|ios::nocreate); // OPEN(UNIT=UNE, ACCESS="APPEND", FILE="pil.mc", STATUS="unknown")
   UNE << TODAY << "   " << TIMESTR << std::endl;
-  //WRITE(UNE, 960) ETOT,
+
   UNE << ETOT <<
     (oResfin.SPM2 [0] [0]+oResfin.SPM2 [1] [0])/4.0 <<
     (oResfin.SPM2 [0] [1]+oResfin.SPM2 [1] [1])/4.0*pow (BETAPLUS,  2) <<
@@ -409,24 +426,6 @@ int main ()
     (oResfin.SPM2 [0] [2]+oResfin.SPM2 [1] [2])*pow (BETAMOINS, 2) +
  2.*(oResfin.SPM2 [0] [3]+oResfin.SPM2 [1] [3])*BETAPLUS)/4.0 <<
     SIGMA;
-//  UNE << ETOT <<
-//    (oResfin.SPM2 [1] [1]+oResfin.SPM2 [2] [1])/4.0 <<
-//    (oResfin.SPM2 [1] [2]+oResfin.SPM2 [2] [2])/4.0*pow (BETAPLUS,  2) <<
-//    (oResfin.SPM2 [1] [3]+oResfin.SPM2 [2] [3])/4.0*pow (BETAMOINS, 2) <<
-//    (oResfin.SPM2 [1] [4]+oResfin.SPM2 [2] [4])/4.0*BETAPLUS <<
-//    ((oResfin.SPM2 [1] [1]+oResfin.SPM2 [2] [1]) +
-//     (oResfin.SPM2 [1] [2]+oResfin.SPM2 [2] [2])*pow (BETAPLUS,  2) +
-//     (oResfin.SPM2 [1] [3]+oResfin.SPM2 [2] [3])*pow (BETAMOINS, 2) +
-//     2.*(oResfin.SPM2 [1] [4]+oResfin.SPM2 [2] [4])*BETAPLUS)/4.0 <<
-//    SIGMA;
   UNE.close ();
 
-////!900 FORMAT(I5, 3E21.14)
-////!920 FORMAT(I2, 2I3, 8E8.2)
-//930 FORMAT(2I3, 3E15.7)
-//940 FORMAT(3X, I3, 3E15.7)
-//960 FORMAT(G12.4, 6E15.7)
-
-    //  STOP
-    }//END PROGRAM RIEMANN
-//!
+}

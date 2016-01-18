@@ -2,21 +2,23 @@
 #define XTRPRO_H
 #include "precision.h"
 
+//!> \brief set of extra probabilities (for histogramming)
+//!> \author Vincent C. LAFAGE
+//!> \date 2007-08-04 ISO
 class xtrpro
 {
-//!
-//!   Common pour passer les probabilites supplementaires
-//!
 
 public:
-  float  PRPLUS, PRMOINS;
+  float
+    PRPLUS,  //!<  extra probabilities (for histogramming): not used in C++, no PAW
+    PRMOINS; //!<  extra probabilities (for histogramming): not used in C++, no PAW
   double EE1, EE2;
-//! present dans mc.f (naturellement)
-//! present dans book.f
+// present dans mc.f (naturellement)
+// present dans book.f
 
 	// Accesseurs
 	// Constructeurs
 	// Destructeur
-	// Méthodes
+	// MÃ©thodes
 };
 #endif // XTRPRO_H

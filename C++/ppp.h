@@ -3,17 +3,22 @@
 #include "precision.h"
 #include <iostream>
 
-static const int INP = 3;    // Number of impulsions generated
+static const int INP = 3;    //!< Number of impulsions generated
+//! \brief array of generated momenta
+//! \author Vincent C. LAFAGE
+//! \date 2007-08-22 ISO
 class ppp
 {
-//!   Common pour passer les impulsions engendrees par Rambo
 
 public:
-  double POUT [4][100], P1 [4], P2 [4];
+  double
+    POUT [4][100], //!< array of outgoing 4-momenta
+    P1 [4],	   //!< incoming (electron) 4-momentum
+    P2 [4];	   //!< incoming (positron) 4-momentum
 
 	// Accesseurs
 	// Constructeurs
-  ppp (double ETOT) {   //!   Initialisation des impulsions entrantes
+  ppp (double ETOT) {   //!   Incoming 4-momenta initialisation
     P1 [3] =  ETOT/2.0;
     P2 [3] =  ETOT/2.0;
     P1 [0] = -ETOT/2.0;
@@ -25,10 +30,11 @@ public:
   }
 
 	// Destructeur
-	// Méthodes
+	// MÃ©thodes
   void RAMBO (const int N, double ET, double* XM, double& WT);
   //void RAMBO (const int N, double ET, double* XM, double** P, double& WT);
 
+  //! \brief Dump 4-momenta of the 3 photons
   void display () {
     for (int I = 0; I < 4; I++) {
       std::cout << I << " "<< POUT [I] [0] << " " << POUT [I] [1] << " " << POUT [I] [2] << std::endl;
@@ -36,7 +42,7 @@ public:
     std::cout << std::endl;
   };
 
-  //!   TRIE LES PHOTONS SORTANTS PAR ENERGIE
+  //!   Sort out outgoing photons according to their energy
   void TRI () {
     double PE [4];
 

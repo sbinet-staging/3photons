@@ -1,5 +1,5 @@
 #include "intel_compatibility.h"
-//! Calcule l'�l�ment de matrice e+e- en 3 photons
+//! Compute matrix element for e⁺e⁻ → 𝛾𝛾𝛾 (3 photons)
 #include "precision.h"
 #include "result.h"
 
@@ -13,14 +13,14 @@ result::result (param  oParam, spinor oSpinor, double ETOT) {
   int l1, l2, l3;
   std::complex<double> A, BP, BM;
 
-//! LES - VIENNENT DES Photons SORTANTS
+//! minus signs comes from outgoing photons
   for (int LL1 = 0; LL1 < 2; LL1++) {
     l1 = - (2*LL1-1);
     for (int LL2 = 0; LL2 < 2; LL2++) {
       l2 = - (2*LL2-1);
       for (int LL3 = 0; LL3 < 2; LL3++) {
 	l3 = - (2*LL3-1);
-//! CALCULS DES AMPLITUDES D'HELICITE
+//! Helicity amplitudes computation
 	if ((l1 == +1) && (l2 == +1) && (l3 == +1)) {
 	  A  = 0.0;
 	  BP = 0.0;
@@ -69,12 +69,12 @@ result::result (param  oParam, spinor oSpinor, double ETOT) {
 	  BM = 0.0;
 	  //std::cout << "-+- " << A  << " " << BP << " " << BM << " " << std::endl;
 	}
-//! COUPLAGES
+//! Couplings
 	A  = A  * oParam.GA;
 	BP = BP * oParam.GBP;
 	BM = BM * oParam.GBM;
 	//std::cout << "" << A  << " " << BP << " " << BM << " " << std::endl;
-//! LES DIFFERENTS TERMES DE L'ELEMENT DE MATRICE AU CARRE
+//! Various terms of squared matrix element
 	M2 [LL1] [LL2] [LL3] [0] = pow (abs (A ), 2);
 	M2 [LL1] [LL2] [LL3] [1] = pow (abs (BP), 2);
 	M2 [LL1] [LL2] [LL3] [2] = pow (abs (BM), 2);

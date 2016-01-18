@@ -7,10 +7,13 @@
 #include "spinor.h"
 #include <complex>
 
+//! \brief array of momenta Lorentz scalar products
+//! \author Vincent C. LAFAGE
+//! \date 2007-08-10 ISO
 class scalar
 {
 public:
-  double PS [5][5];
+  double PS [5][5]; //!< symmetric array with all possible Lorentz 4-scalar products for the problem (Gram matrix)
 
 	// Accesseurs
 	// Constructeurs
@@ -31,6 +34,6 @@ public:
     }
   }
 	// Destructeur
-	// Méthodes
+	// MÃ©thodes
 };
 #endif // SCALAR_H

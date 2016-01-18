@@ -6,12 +6,17 @@
 
 const int NRES = 8 ;
 
-//!   Common pour passer les résultats finaux
+//!> \brief array of final results: differential cross-section, sum and variance
+//!> \author Vincent C. LAFAGE
+//!> \date 2007-08-22 ISO
 class resfin
 {
 
 public:
-  double SPM2DIF [NRES], SPM2 [2] [NRES], VAR [2] [NRES];
+  double
+    SPM2DIF [NRES],  //!< element of cross-section
+    SPM2 [2] [NRES], //!< total cross-section
+    VAR [2] [NRES];  //!< variance of the sum
 
 	// Constructeurs
   resfin () {

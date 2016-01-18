@@ -22,7 +22,7 @@ void ppp::RAMBO (const int N, double ET, double* XM, double& WT) {
 //! ****** VERSION LIGHT & LIGHTSPEED ******
 //!
 //!    A DEMOCRATIC MULTI-PARTICLE PHASE SPACE GENERATOR
-//!    AUTHORS@D  S.D. ELLIS,  R. KLEISS,  W.J. STIRLING
+//!    AUTHORS:  S.D. ELLIS,  R. KLEISS,  W.J. STIRLING
 //!    THIS IS VERSION 1.0 -  WRITTEN BY R. KLEISS
 //!
 //!    N  = NUMBER OF PARTICLES (>1, IN THIS VERSION <101)
@@ -44,7 +44,7 @@ void ppp::RAMBO (const int N, double ET, double* XM, double& WT) {
   int IWARN [5] = {0, 0, 0, 0, 0}; // DATA IWARN/5*0/;
   //double RN;
 
-//! INITIALIZATION STEP@D FACTORIALS FOR THE PHASE SPACE WEIGHT
+//! INITIALIZATION STEP: FACTORIALS FOR THE PHASE SPACE WEIGHT
   if (IBEGIN == 0) {
     std::cout << "IBegin" << std::endl;
     IBEGIN = 1;
