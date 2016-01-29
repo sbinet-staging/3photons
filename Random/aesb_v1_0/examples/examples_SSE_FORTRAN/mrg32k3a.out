@@ -1,0 +1,4 @@
+Generator State: {{123,123,123},{123,123,123}}
+100000000 MRG32K3A pseudorandom numbers generated using SSE instructions and 128-bit XMM-registers of CPU.
+Fractional part of the total sum of generated numbers: 0.615538
+Next output value: 0.428058
