@@ -1,0 +1,160 @@
+\documentclass[a4paper]{article}
+\usepackage{mathrsfs}
+%\usepackage{amsmath}
+\newsavebox{\myhbar}
+\savebox{\myhbar}{$\hbar$}
+\usepackage[cm-default]{fontspec}
+\usepackage{xltxtra}
+\usepackage{xunicode}
+\renewcommand*{\hbar}{\mathalpha{\usebox{\myhbar}}}
+%%%%\usepackage{mathpazo} % get Palatino math
+%%%\usepackage{fontspec} % xunicode is not needed, nor xltxtra
+%%%\usepackage{xunicode}
+%%%%\defaultfontfeatures{Ligatures=TeX} % syntax compatible with LuaLaTeX
+%%%%\setmainfont{TeX Gyre Pagella}
+%%%% Magic formula for make \hbar not throwing a spurious message
+%%%% However, \hbar won't work in text mode, which should not be a problem
+%%%\expandafter\let\expandafter\hbar\csname ?-\string\hbar\endcsname
+%%%% End of magic code
+%%%\renewcommand{\hbar}{\mathchar'26\mkern-9mu h}
+\begin{document}
+
+\centerline{\Large 3$\gamma$ : a short write-up}
+%\centerline{\Large 3𝛾 : a short writeup}
+
+
+In this document, we will describe the motivations for the toy Monte-Carlo \texttt{3photons}.
+It has various implementations
+(\texttt{Fortran 77}, \texttt{Fortran 90}, \texttt{C++},
+\texttt{Ada}…) and various attempt at becoming concurrent (\texttt{OpenMP},
+\texttt{Tasks}, \texttt{GPU}…)
+
+But here, we will focus on the description of the physics and maths.
+
+\section{Particle Physics: crash course}
+In an experiment on a \emph{collider}, physicists prepare a rather well-known \emph{initial state}: in our case, a set of one electron and one positron, with the same energy in the center of mass frame, heading in opposite direction.
+Then physicists use \emph{detectors} to record \emph{events} with a given \emph{final state} in a given \emph{configuration}: in our case, a set of three photons flying away from the collision point.
+As there are constraints on the detector, all events cannot be recorded: for instance, the beam-pipe of the collider going through the detector cannot be instrumented for detection. To reflect this, we speak of \emph{cuts} in the configuration space also known as \emph{phase space}. In the case of the beam-pipe, the blind spot in the detector can be described by an angular cut between the photons and the collision axis.
+The detector being segmented, for instance by piling detection crystals, there is another kind of cuts on the recording: if two photons fall in the same crystal, they will be seen as one. We speak of separation cut, which can be described by another angle between two photons that needs to be big enough.
+And other cuts are non-geometrical, as detector may have, for instance, a minimum threshold on energy of particles the can detect.
+
+The questions that arise when planning a collider and detector set are: ``How many events should we expect to record?'', ``Is it enough to have a statistical certainty?'', ``Is it enough to confirm known effects or detect New Physics?'', ``How long will it take to collect the required statistics to confirm a discovery?''…
+
+So we need to compute the number of events $\mathcal{N}$ from the theory.
+First, we expect that, the longer the collider and detector run, the more events we will see: for a duration $T$
+\begin{eqnarray}
+  \mathcal{N} & \propto & T \\
+  &=& N \times T
+\end{eqnarray}
+where $N$ is a rate (number of events per second).
+
+We can imagine that, if we ``push the beam'' with more current, or if we focus it more strongly, it will produce more events: this depends on the machine (i.e. the collider) and it is summed up in a number $\mathscr{L}$ called \emph{Luminosity} (in fact, it is an instantaneous luminosity)
+\begin{eqnarray}
+  N & \propto & \mathscr{L} \\
+  &=&  \mathscr{L} \times \sigma
+\end{eqnarray}
+where the proportionality coefficient $\sigma$ depends no more on the collider, but \emph{only on the physics}, or at least the physics that we can detect within the cuts…
+We call $\sigma$ the \emph{cross-section} of the process transforming the initial state to the final state
+(here the process is $e^+e^-\to\gamma\gamma\gamma$).
+It is expressed in units of area. If particles were bullets, it could be seen as the cross-section of the bullet. So the relevant units are rather tiny, such as the barn $\hbox{b}$ equal to $10^{-28}\,\hbox{~m}^2$ or $100\,\hbox{~fm}^2$, and we often see them expressed in smaller sub-units (nanobarn, picobarn, femtobarn…). As energy can be seen as the inverse of a distance in quantum mechanics, we often compute cross section in $\hbox{GeV}^{-2}$ (converting in the end with $\hbar {c}=0.1973269788\hbox{~GeV}\cdot\hbox{fm}$ giving $(\hbar {c})^2=0.389379338\hbox{~GeV}^2\cdot\hbox{mb}$).
+
+The \textbf{cross-section} is what we want to compute.
+
+\section{Maths}
+We have to consider all possible configurations of the final state particles, or at least the possible configuration that we can see within the cuts and the capabilities of the detector. Each such configuration also known as event or \emph{phase space point} will give a contribution to the total cross section. The minimal representation of an event is the collection of all incoming and outgoing particles energies \& momenta, summed for each particle in a 4-dimensional vector, the (\textsc{Lorentz}) 4-momentum.
+
+\begin{enumerate}
+\item sampling the phase space for an event, and attribute it a \emph{weight} depending on the local density of the phase space near the event.
+\item compute the contribution of this event (the differential cross-section), that is the product of its weight and of the probability that it occurs from the physics point of view. This probability $\mathcal{\left|M\right|}^2$ is computed from Quantum Field Theory through the Feynman rules. It is the modulus of the complex number $\mathcal{M}$ (like ``\emph{matrix element}'') also known as \emph{transition amplitude}.
+\item sum up all contributions. From a mathematical point of view this is an integration over a multidimensional space.
+\end{enumerate}
+
+The algorithm of choice for this type of integration is Monte-Carlo
+
+\begin{enumerate}
+\item For rather uniform phase space, as is the case for this process, we will use the RAMBO algorithm: \textsc{RAndom  Momenta  Beautifully Organized}. It samples uniformly a phase space of massless particles with 4 random numbers per final particle. In the \texttt{C++} version, it is implemented in method \texttt{RAMBO} of class \texttt{ppp}
+%A Democratic Multi-Particle Phase Space Generator
+%authors:  S.D. Ellis,  R. Kleiss,  W.J. Stirling
+\item Here we could perform the matrix element computation in a completely analytical way with so called Spinor Inner Products as basic computation block. We relied on a direct expression of the transition amplitude for each helicity configuration (helicity is the spin in case of massless particles)
+\item Here the Monte-Carlo algorithm is the simplest possible, as we just sum contribution (no adaptative mesh refinement).
+\end{enumerate}
+
+We reject elements that don't enter phase space cuts between phase 1 and 2. As many cuts are of geometrical nature, we previously compute the angles, and even before we compute the scalar products of particle momenta. In this particular Monte-Carlo, scalar product can be computed from the spinor inner product that are really the basic building block for the whole computation, and that we evaluate first.
+
+We also have to evaluate the uncertainty, and for a random process as Monte-Carlo, it comes from the variance, so we keep track of the sum of the square of the contribution.
+
+\section{Architecture in more details}
+Before getting into the details of the code, we must understand that this code was used by physicist in a realistic context.
+They didn't want to just evaluate one cross section, but three:
+\begin{enumerate}
+\item the precise value of the Standard Model cross-section (namely from lowest-order Quantum ElectroDynamics)
+\item the contribution of two possibles New Physics
+\item … without forgetting the possible interferences between these three complex contributions
+\end{enumerate}
+The total amplitude
+\begin{eqnarray}
+  \mathcal{M}  &=&  \mathcal{A}_{QED} + \mathcal{B}_+ + \mathcal{B}_-
+\end{eqnarray}
+once squared leads to six terms for the total probability
+\begin{eqnarray}
+\mathcal{\left|M\right|}^2
+&=&
+ \left|\mathcal{A}\right|^2
++\left|\mathcal{B}_+\right|^2
++\left|\mathcal{B}_-\right|^2
++2\,\hbox{Re}\left({\mathcal{A}\mathcal{B}_+^*}\right)
++2\,\hbox{Re}\left({\mathcal{A}\mathcal{B}_-^*}\right)
++2\,\hbox{Re}\left({\mathcal{B}_+\mathcal{B}_-^*}\right)
+\end{eqnarray}
+
+But in fact physics associated to $\mathcal{B}_-$ always contribute to different helicity configuration than $\mathcal{A}$ and $\mathcal{B}_+$, so we are left with only one interference term.
+\begin{eqnarray}
+\mathcal{\left|M\right|}^2
+&=&
+ \left|\mathcal{A}\right|^2
++\left|\mathcal{B}_+\right|^2
++\left|\mathcal{B}_-\right|^2
++2\,\hbox{Re}\left({\mathcal{A}\mathcal{B}_+^*}\right)
+\end{eqnarray}
+
+Yet we will evaluate a fifth term (although it doesn't contribute), as an error evaluator:
+\begin{eqnarray}
+ 2\,\hbox{Im}\left({\mathcal{A}\mathcal{B}_+^*}\right)
+\end{eqnarray}
+It is not null for a given event, but has to sum up to zero over the phase space.
+Its numerical evaluation is a good indicator of the statistical accuracy.
+
+\subsection{result data structure}
+As we use a Helicity Amplitude Method, we keep track of all helicities of the 5 particles (incoming electron and positron, and the three outgoing photons). But in fact some configurations are forbidden (heavily suppressed by a factor ${m_e\over\sqrt{s}}\sim 10^{-5}$ in reality, which is zero in this approximation). As for electron / positron, chirality allows only the opposite helicities, and the two remaining configurations out of four are connected by a simple proportionality factor.
+This is stored in the array~\texttt{double M2 [2] [2] [2] [NRESUL]} of class \texttt{result} where the three first dimensions describe the helicities of photons, and the last dimension the five terms quadratic in amplitude described before.
+
+\subsection{computation chain summary}
+The program start with initialisation of parameters: physics constant in class~\texttt{param}, cuts in class~\texttt{cutpar}, number of events to be simulated in variable~\texttt{ITOT}), total energy in the center-of-mass frame in variable~\texttt{ETOT}. Then the main part is a sampling loop over the desired number of events.
+
+\begin{enumerate}
+\item generation of event with method~\texttt{RAMBO} (all 4-momenta stored in class~\texttt{ppp})
+\item computation of:
+\begin{enumerate}
+\item spinor inner products with constructors of class~\texttt{spinor}
+\item scalar products with constructor of class~\texttt{scalar}
+\item angles with constructor of class~\texttt{angle}
+\end{enumerate}
+\item test of cuts in method~\texttt{angle}, method~\texttt{CUT}\\
+  Number of events passing the cuts in variable~\texttt{NTOT}.
+\item computation of matrix element with constructor of method~\texttt{result}\\
+  Storage of results in array~\texttt{double M2 [2] [2] [2] [NRESUL]}
+\item aggregation of results in class~\texttt{resfin}
+\end{enumerate}
+
+Each loop takes about 1 to 2 $\mu$s, so the code is already rather fast, because it is a very simple process. Accelerating only one part of the loop does not help. We can improve the efficiency only by distributing the full computation in one loop to each core.
+
+%\begin{eqnarray}
+%  \mathcal{M}  &=&  \mathcal{A}_{QED} + \mathcal{B}_+ + \mathcal{B}_-
+%\end{eqnarray}
+
+\end{document}
+
+%%  LocalWords:  Fortran OpenMP GPU collider center nanobarn picobarn
+%%  LocalWords:  femtobarn GeV massless ppp analytical Spinor spinor
+%%  LocalWords:  helicity adaptative ElectroDynamics interferences
+%%  LocalWords:  evaluator helicities chirality
