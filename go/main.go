@@ -10,11 +10,8 @@ import (
 	"math/cmplx"
 	"os"
 	"runtime/pprof"
-	"sort"
 	"strings"
 	"time"
-
-	"github.com/go-hep/fmom"
 )
 
 var (
@@ -324,131 +321,6 @@ type Param struct {
 	IMPR  bool    // predicate controlling dump of result
 }
 
-type Event struct {
-	P1   fmom.PxPyPzE      // incoming e- 4-momentum
-	P2   fmom.PxPyPzE      // incoming e+ 4-momentum
-	Pout [100]fmom.PxPyPzE // outgoing particles
-
-	z    [100]float64
-	mtot float64
-	nm   int
-}
-
-func NewEvent(etot float64, masses []float64) Event {
-	evt := Event{
-		P1: fmom.PxPyPzE{-0.5 * etot, 0, 0, +0.5 * etot},
-		P2: fmom.PxPyPzE{+0.5 * etot, 0, 0, +0.5 * etot},
-	}
-	evt.init(etot, masses)
-	return evt
-}
-
-func (e *Event) display() {
-	for i, p := range e.Pout[:4] {
-		fmt.Printf("%d: %v\n", i, p)
-	}
-}
-
-func (e *Event) sort() {
-	sort.Sort(byEne(e.Pout[:4]))
-}
-
-func (e *Event) init(etot float64, masses []float64) {
-	fmt.Printf("initializing...\n")
-	e.z[1] = po2log
-	for i := range e.z {
-		if i < 2 {
-			continue
-		}
-		e.z[i] = e.z[i-1] + po2log - 2*math.Log(float64(i-1))
-	}
-	for i, v := range e.z {
-		if i < 2 {
-			continue
-		}
-		e.z[i] = v - math.Log(float64(i))
-	}
-
-	if len(masses) < 1 || len(masses) > 100 {
-		log.Fatal("invalid number of particles: %d\n", len(masses))
-	}
-
-	// check whether total energy is sufficient
-	e.mtot = 0
-	e.nm = 0
-	for _, m := range masses {
-		if m != 0 {
-			e.nm++
-		}
-		e.mtot += abs(m)
-	}
-	if e.mtot > etot {
-		log.Fatal("mtot > etot (%v>%v)\n", e.mtot, etot)
-	}
-	fmt.Printf("initializing... [done]\n")
-}
-
-func (e *Event) Rambo(n int, etot float64, ms []float64, weight *float64) {
-	var (
-		q [INP]fmom.PxPyPzE
-		r fmom.PxPyPzE
-		b [3]float64
-	)
-
-	// generate massless momenta in infinite phase space
-	for i := 0; i < n; i++ {
-		c := 2*rn() - 1
-		s := sqrt(1 - c*c)
-		f := twopi * rn()
-		e := -math.Log(rn() * rn())
-		pz := e * c
-		py := e * s * math.Cos(f)
-		px := e * s * math.Sin(f)
-		q[i] = fmom.PxPyPzE{px, py, pz, e}
-	}
-
-	// compute the parameters of the conformal transformation
-	for i := 0; i < n; i++ {
-		v := q[i]
-		r[0] += v.Px()
-		r[1] += v.Py()
-		r[2] += v.Pz()
-		r[3] += v.E()
-	}
-	rmass := r.M()
-	invrmass := 1 / rmass
-	b[0] = -r[0] * invrmass
-	b[1] = -r[1] * invrmass
-	b[2] = -r[2] * invrmass
-	g := r[3] * invrmass
-	a := 1 / (1 + g)
-	x := etot * invrmass
-
-	// transorfms the q's conformally into the p's
-	for i, qq := range q {
-		pout := e.Pout[i]
-		bq := b[0]*qq.Px() + b[1]*qq.Py() + b[2]*qq.Pz()
-		for k := 0; k < 3; k++ {
-			pout[k] = x * (qq[k] + b[k]*(qq.E()+a*bq))
-		}
-		pout[3] = x * (g*qq.E() + bq)
-		e.Pout[i] = pout
-	}
-
-	// computes weights
-	wt := po2log
-	if n != 2 {
-		wt = (2*float64(n)-4)*math.Log(etot) + e.z[n-1]
-	}
-	*weight = math.Exp(wt)
-}
-
-type byEne []fmom.PxPyPzE
-
-func (p byEne) Len() int           { return len(p) }
-func (p byEne) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p byEne) Less(i, j int) bool { return p[i].E() > p[j].E() }
-
 const twopi = 2 * math.Pi
 
 var po2log = math.Log(0.5 * math.Pi)
@@ -465,79 +337,6 @@ type ResFin struct {
 	Var     [2][NRES]float64 // variance of the sum
 }
 
-type Spinor struct {
-	S [5][5]complex128 // mass-less momenta spinor inner products Gram matrix
-	T [5][5]complex128 // mass-less momenta conjugate spinor inner products Gram matrix
-}
-
-func initSpinor(spinor *Spinor, evt *Event) {
-	var (
-		p = [5]fmom.PxPyPzE{
-			evt.P1,
-			evt.P2,
-			evt.Pout[0],
-			evt.Pout[1],
-			evt.Pout[2],
-		}
-		xx [5]float64
-		fx [5]complex128
-	)
-
-	for k := 0; k < 5; k++ {
-		tx := sqrt(p[k].E() + p[k].Pz())
-		xx[k] = tx
-		fx[k] = complex(p[k].Px(), p[k].Py()) / complex(tx, 0)
-	}
-
-	for j := 0; j < 4; j++ {
-		for k := j + 1; k < 5; k++ {
-			// spinor product Mangano, Sparke
-			cx := fx[j]*complex(xx[k], 0) - fx[k]*complex(xx[j], 0)
-			spinor.S[j][k] = +cx
-			spinor.S[k][j] = -cx
-			spinor.T[k][j] = +cmplx.Conj(cx)
-			spinor.T[j][k] = -cmplx.Conj(cx)
-		}
-	}
-	//return spinor
-}
-
-func (s *Spinor) APPM(k1, k2, k3 int) complex128 {
-	return -RAC8 * s.S[0][1] * s.S[0][k3] * s.S[0][k3] / (s.S[0][k1] * s.S[0][k2] * s.S[1][k1] * s.S[1][k2])
-}
-
-func (s *Spinor) APMM(k1, k2, k3 int) complex128 {
-	return -RAC8 * s.T[0][1] * s.T[1][k1] * s.T[1][k1] / (s.T[1][k2] * s.T[1][k3] * s.T[0][k2] * s.T[0][k3])
-}
-
-func (s *Spinor) BPPM(k1, k2, k3 int) complex128 {
-	v := s.T[k1][k2] * s.S[k3][0]
-	v2 := v * v
-	return -RAC8 * s.T[0][1] * v2
-}
-
-func (s *Spinor) BPMM(k1, k2, k3 int) complex128 {
-	v := s.T[k1][1] * s.S[k2][k3]
-	v2 := v * v
-	return -RAC8 * s.S[0][1] * v2
-}
-
-func (s *Spinor) BPPP(k1, k2, k3 int) complex128 {
-	v123 := s.T[k1][k2] * s.T[k3][1]
-	v132 := s.T[k1][k3] * s.T[k2][1]
-	v231 := s.T[k2][k3] * s.T[k1][1]
-	sum := v123*v123 + v132*v132 + v231*v231
-	return -RAC8 * s.S[0][1] * sum
-}
-
-func (s *Spinor) BMMM(k1, k2, k3 int) complex128 {
-	v123 := s.S[k1][0] * s.S[k2][k3]
-	v213 := s.S[k2][0] * s.S[k1][k3]
-	v312 := s.S[k3][0] * s.S[k1][k2]
-	sum := v123*v123 + v213*v213 + v312*v312
-	return -RAC8 * s.T[0][1] * sum
-}
-
 type Scalar [5][5]float64
 
 func initScalar(s *Scalar, spinor *Spinor) {
@@ -550,7 +349,6 @@ func initScalar(s *Scalar, spinor *Spinor) {
 			s[k][j] = s[j][k]
 		}
 	}
-	//return s
 }
 
 type Angle struct {
@@ -565,7 +363,7 @@ type Angle struct {
 }
 
 func NewAngle(evt *Event, scalar *Scalar) Angle {
-	p := [5]fmom.PxPyPzE{
+	p := [5]PxPyPzE{
 		evt.P1,
 		evt.P2,
 		evt.Pout[0],
@@ -636,57 +434,47 @@ func initResult(res *Result, param *Param, spinor *Spinor, etot float64) {
 					a = 0
 					bp = 0
 					bm = spinor.BPPP(2, 3, 4)
-				//	fmt.Printf("+++ %v %v %v\n", a, bp, bm)
 
 				case l1 == -1 && l2 == -1 && l3 == -1:
 					a = 0
 					bp = 0
 					bm = spinor.BMMM(2, 3, 4)
-				//	fmt.Printf("--- %v %v %v\n", a, bp, bm)
 
 				case l1 == +1 && l2 == +1 && l3 == -1:
 					a = spinor.APPM(2, 3, 4)
 					bp = spinor.BPPM(2, 3, 4)
 					bm = 0.0
-				//	fmt.Printf("++- %v %v %v\n", a, bp, bm)
 
 				case l1 == +1 && l2 == -1 && l3 == +1:
 					a = spinor.APPM(4, 2, 3)
 					bp = spinor.BPPM(4, 2, 3)
 					bm = 0.0
-				//	fmt.Printf("+-+ %v %v %v\n", a, bp, bm)
 
 				case l1 == -1 && l2 == +1 && l3 == +1:
 					a = spinor.APPM(3, 4, 2)
 					bp = spinor.BPPM(3, 4, 2)
 					bm = 0.0
-				//	fmt.Printf("-++ %v %v %v\n", a, bp, bm)
 
 				case l1 == +1 && l2 == -1 && l3 == -1:
 					a = spinor.APMM(2, 3, 4)
 					bp = spinor.BPMM(2, 3, 4)
 					bm = 0.0
-				//	fmt.Printf("+-- %v %v %v\n", a, bp, bm)
 
 				case l1 == -1 && l2 == -1 && l3 == +1:
 					a = spinor.APMM(4, 2, 3)
 					bp = spinor.BPMM(4, 2, 3)
 					bm = 0.0
-					//	fmt.Printf("--+ %v %v %v\n", a, bp, bm)
 
 				case l1 == -1 && l2 == +1 && l3 == -1:
 					a = spinor.APMM(3, 2, 4)
 					bp = spinor.BPMM(3, 2, 4)
 					bm = 0.0
-					//	fmt.Printf("-+- %v %v %v\n", a, bp, bm)
 				}
 
 				// couplings
 				a *= complex(param.GA, 0)
 				bp *= complex(param.GBP, 0)
 				bm *= complex(param.GBM, 0)
-
-				// fmt.Printf("== %v %v %v\n", a, bp, bm)
 
 				aabs := cmplx.Abs(a)
 				a2 := aabs * aabs
@@ -698,88 +486,16 @@ func initResult(res *Result, param *Param, spinor *Spinor, etot float64) {
 				abp := a * cmplx.Conj(bp)
 
 				//squared matrix elements
-				res.M2[ll1][ll2][ll3][0] = a2
-				res.M2[ll1][ll2][ll3][1] = bp2
-				res.M2[ll1][ll2][ll3][2] = bm2
-				res.M2[ll1][ll2][ll3][3] = 2.0 * real(abp)
-				res.M2[ll1][ll2][ll3][4] = 2.0 * imag(abp)
-				// res.M2[ll1][ll2][ll3][5] = 0.0
-				// res.M2[ll1][ll2][ll3][6] = 0.0
-				// res.M2[ll1][ll2][ll3][7] = 0.0
-
-				// fmt.Printf("l1-l2-l3-0 %v\n", res.M2[ll1][ll2][ll3][0])
+				m2 := res.M2[ll1][ll2][ll3][:]
+				m2[0] = a2
+				m2[1] = bp2
+				m2[2] = bm2
+				m2[3] = 2.0 * real(abp)
+				m2[4] = 2.0 * imag(abp)
+				m2[5] = 0.0
+				m2[6] = 0.0
+				m2[7] = 0.0
 			}
 		}
-	}
-	//return res
-}
-
-func b2i(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-const modulo = 1000000000
-
-var (
-	ncall = 0
-	mcall = 55
-	ia    [56]int64
-)
-
-// rn returns a random number between 0 and 1.
-// Rand implements a random number function taken from Knuth's RANF
-// (Semi numerical algorithms).
-//
-// Method is X(N)=MOD(X(N-55)-X(N-24), 1/FMODUL)
-func rn() float64 {
-	const fmodul = 1e-9
-	if ncall == 0 {
-		in55(&ia, int64(234612947))
-		ncall = 1
-	}
-	if mcall == 0 {
-		irn55(&ia)
-		mcall = 55
-	}
-	mcall -= 1
-	return float64(ia[mcall+1]) * fmodul
-}
-
-func in55(ia *[56]int64, ix int64) {
-	(*ia)[55] = ix
-	j := ix
-	k := int64(1)
-	for i := 1; i <= 54; i++ {
-		ii := (21 * i) % 55
-		(*ia)[ii] = k
-		k = j - k
-		if k < 0 {
-			k += modulo
-		}
-		j = (*ia)[ii]
-	}
-	for i := 0; i < 10; i++ {
-		irn55(ia)
-	}
-}
-
-func irn55(ia *[56]int64) {
-	var j int64
-	for i := 1; i <= 24; i++ {
-		j = (*ia)[i] - (*ia)[i+31]
-		if j < 0 {
-			j += modulo
-		}
-		(*ia)[i] = j
-	}
-	for i := 25; i <= 55; i++ {
-		j = (*ia)[i] - (*ia)[i-24]
-		if j < 0 {
-			j += modulo
-		}
-		(*ia)[i] = j
 	}
 }

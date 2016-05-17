@@ -4,7 +4,7 @@
 all: build
 
 build:
-	@go build -o 3photons main.go
+	@go build -o 3photons main.go rand.go event.go spinor.go p4.go
 
 clean:
 	@/bin/rm ./3photons
