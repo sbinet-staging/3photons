@@ -6,8 +6,8 @@
 #FC         = f77
 FC         = ifort
 FC         = gfortran
-FC         = g77
-FC         = fort77
+#FC         = g77
+#FC         = fort77
 
 #FFLAGS	= -G -K +ppu +E1 -C -R8 -c +U77 -w66 +O3
 #LDFLAGS	= -G -K +ppu +E1 -C +U77 +O3
