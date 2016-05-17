@@ -188,8 +188,7 @@ func main() {
 		initScalar(&scalar, &spinor)
 		angle := NewAngle(&evt, &scalar)
 
-		ok := angle.Cut(&evt, &cut)
-		if !ok {
+		if !angle.Cut(&evt, &cut) {
 			initResult(&result, &param, &spinor, etot)
 			for k := 0; k < NRES; k++ {
 				resfin.Spm2Dif[k] = 0
@@ -214,7 +213,6 @@ func main() {
 		} else {
 			weight = 0
 		}
-		// fmt.Fprintf(dbg, "%d %e %d\n", i, wtev, b2i(ok))
 	}
 
 	dtot := 1 / float64(itot)
@@ -253,9 +251,8 @@ func main() {
 	betamin := sqrt((resfin.Spm2[0][0] + resfin.Spm2[1][0]) / (resfin.Spm2[0][1] + resfin.Spm2[1][1]))
 	ssp := 0.5 * (resfin.Spm2[0][1] + resfin.Spm2[1][1]) / sqrt(resfin.Spm2[0][0]+resfin.Spm2[1][0])
 	ssm := 0.5 * (resfin.Spm2[0][2] + resfin.Spm2[1][2]) / sqrt(resfin.Spm2[0][0]+resfin.Spm2[1][0])
-	incssp := +sqrt(+pow(resfin.Spm2[0][1]*resfin.Var[0][1], 2)+pow(resfin.Spm2[1][1]*resfin.Var[1][1], 2))/abs(resfin.Spm2[0][1]+resfin.Spm2[1][1]) + sqrt(+pow(resfin.Spm2[0][0]*resfin.Var[0][0], 2)+pow(resfin.Spm2[1][0]*resfin.Var[1][0], 2))/abs(resfin.Spm2[0][0]+resfin.Spm2[1][0])/2.0
-	//incssp := sqrt(pow(resfin.Spm2[0][1]*resfin.Var[0][1], 2)+pow(resfin.Spm2[1][1]*resfin.Var[1][1], 2)) / abs(resfin.Spm2[0][1]+resfin.Spm2[1][1])
-	//incssp += sqrt(pow(resfin.Spm2[0][0]*resfin.Var[0][0], 2)+pow(resfin.Spm2[1][0]*resfin.Var[1][0], 2)) / abs(resfin.Spm2[0][0]+resfin.Spm2[1][0]) / 2.0
+	incssp := sqrt(pow(resfin.Spm2[0][1]*resfin.Var[0][1], 2)+pow(resfin.Spm2[1][1]*resfin.Var[1][1], 2)) / abs(resfin.Spm2[0][1]+resfin.Spm2[1][1])
+	incssp += sqrt(pow(resfin.Spm2[0][0]*resfin.Var[0][0], 2)+pow(resfin.Spm2[1][0]*resfin.Var[1][0], 2)) / abs(resfin.Spm2[0][0]+resfin.Spm2[1][0]) / 2.0
 	incssm := sqrt(pow(resfin.Spm2[0][2]*resfin.Var[0][2], 2)+pow(resfin.Spm2[1][2]*resfin.Var[1][2], 2)) / abs(resfin.Spm2[0][2]+resfin.Spm2[1][2])
 	incssm += sqrt(pow(resfin.Spm2[0][0]*resfin.Var[0][0], 2)+pow(resfin.Spm2[1][0]*resfin.Var[1][0], 2)) / abs(resfin.Spm2[0][0]+resfin.Spm2[1][0]) / 2.0
 
